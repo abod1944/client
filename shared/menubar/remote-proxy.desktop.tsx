@@ -12,6 +12,11 @@ import type * as NotifConstants from '@/constants/notifications'
 import {useColorScheme} from 'react-native'
 import * as FS from '@/constants/fs'
 import {useFSState} from '@/constants/fs'
+import {useFollowerState} from '@/constants/followers'
+import {useUsersState} from '@/constants/users'
+import {useNotifState} from '@/constants/notifications'
+import {useCurrentUserState} from '@/constants/current-user'
+import {useDaemonState} from '@/constants/daemon'
 
 const {showTray} = KB2.functions
 
@@ -77,14 +82,14 @@ const convoDiff = (a: C.Chat.ConvoState, b: C.Chat.ConvoState) => {
 const usernamesCache = new Map<string, Set<string>>()
 // TODO could make this render less
 const MenubarRemoteProxy = React.memo(function MenubarRemoteProxy() {
-  const followerState = C.useFollowerState(
+  const followerState = useFollowerState(
     C.useShallow(s => {
       const {followers, following} = s
       return {followers, following}
     })
   )
   const {following, followers} = followerState
-  const username = C.useCurrentUserState(s => s.username)
+  const username = useCurrentUserState(s => s.username)
   const configState = C.useConfigState(
     C.useShallow(s => {
       const {httpSrv, loggedIn, outOfDate, windowShownCount} = s
@@ -99,13 +104,13 @@ const MenubarRemoteProxy = React.memo(function MenubarRemoteProxy() {
     })
   )
   const {kbfsDaemonStatus, overallSyncStatus, pathItems, sfmi, tlfUpdates, uploads} = fsState
-  const {desktopAppBadgeCount, navBadges, widgetBadge} = C.useNotifState(
+  const {desktopAppBadgeCount, navBadges, widgetBadge} = useNotifState(
     C.useShallow(s => {
       const {desktopAppBadgeCount, navBadges, widgetBadge} = s
       return {desktopAppBadgeCount, navBadges, widgetBadge}
     })
   )
-  const infoMap = C.useUsersState(s => s.infoMap)
+  const infoMap = useUsersState(s => s.infoMap)
   const widgetList = C.useChatState(s => s.inboxLayout?.widgetList)
   const isDarkMode = useColorScheme() === 'dark'
   const {diskSpaceStatus, showingBanner} = overallSyncStatus
@@ -209,7 +214,7 @@ const MenubarRemoteProxy = React.memo(function MenubarRemoteProxy() {
     totalSyncingBytes: uploads.totalSyncingBytes,
   }
 
-  const daemonHandshakeState = C.useDaemonState(s => s.handshakeState)
+  const daemonHandshakeState = useDaemonState(s => s.handshakeState)
 
   const p: ProxyProps & WidgetProps = {
     ...upDown,

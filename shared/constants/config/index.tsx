@@ -1,6 +1,7 @@
 import * as C from '..'
 import * as T from '../types'
 import * as EngineGen from '@/actions/engine-gen-gen'
+import {useDeepLinksState} from '../deeplinks'
 import * as RemoteGen from '@/actions/remote-gen'
 import * as Stats from '@/engine/stats'
 import * as Z from '@/util/zustand'
@@ -13,12 +14,17 @@ import {defaultUseNativeFrame, isMobile} from '../platform'
 import {type CommonResponseHandler} from '@/engine/types'
 import {useAvatarState} from '@/common-adapters/avatar/store'
 import {useState as useWNState} from '../whats-new'
+import {useFollowerState} from '../followers'
+import {useCurrentUserState} from '../current-user'
 import type * as Pinentry from '@/constants/pinentry'
 import {invalidPasswordErrorString} from './util'
 import {useSettingsContactsState} from '../settings-contacts'
 import {useSettingsState} from '../settings'
 import {useTrackerState} from '../tracker2'
 import {useFSState} from '../fs'
+import {useDaemonState} from '../daemon'
+import {useProvisionState} from '../provision'
+import {useEngineState} from '../engine'
 
 const ignorePromise = (f: Promise<void>) => {
   f.then(() => {}).catch(() => {})
@@ -260,8 +266,8 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
     // Re-get info about our account if you log in/we're done handshaking/became reachable
     if (r === T.RPCGen.Reachable.yes) {
       // not in waiting state
-      if (C.useDaemonState.getState().handshakeWaiters.size === 0) {
-        C.ignorePromise(C.useDaemonState.getState().dispatch.loadDaemonBootstrapStatus())
+      if (useDaemonState.getState().handshakeWaiters.size === 0) {
+        C.ignorePromise(useDaemonState.getState().dispatch.loadDaemonBootstrapStatus())
       }
     }
 
@@ -380,9 +386,9 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
         }
         case RemoteGen.engineConnection: {
           if (action.payload.connected) {
-            C.useEngineState.getState().dispatch.onEngineConnected()
+            useEngineState.getState().dispatch.onEngineConnected()
           } else {
-            C.useEngineState.getState().dispatch.onEngineDisconnected()
+            useEngineState.getState().dispatch.onEngineDisconnected()
           }
           break
         }
@@ -403,7 +409,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
           break
         }
         case RemoteGen.saltpackFileOpen: {
-          C.useDeepLinksState.getState().dispatch.handleSaltPackOpen(action.payload.path)
+          useDeepLinksState.getState().dispatch.handleSaltPackOpen(action.payload.path)
           break
         }
         case RemoteGen.pinentryOnCancel: {
@@ -466,7 +472,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
         case RemoteGen.link:
           {
             const {link} = action.payload
-            C.useDeepLinksState.getState().dispatch.handleAppLink(link)
+            useDeepLinksState.getState().dispatch.handleAppLink(link)
           }
           break
         case RemoteGen.installerRan:
@@ -603,7 +609,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
 
       if (phase === 'startupOrReloginButNotInARush') {
         const getFollowerInfo = () => {
-          const {uid} = C.useCurrentUserState.getState()
+          const {uid} = useCurrentUserState.getState()
           logger.info(`getFollowerInfo: init; uid=${uid}`)
           if (uid) {
             // request follower info in the background
@@ -634,7 +640,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
 
         const updateChat = async () => {
           // On login lets load the untrusted inbox. This helps make some flows easier
-          if (C.useCurrentUserState.getState().username) {
+          if (useCurrentUserState.getState().username) {
             const {inboxRefresh} = C.useChatState.getState().dispatch
             inboxRefresh('bootstrap')
           }
@@ -669,7 +675,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
               'keybase.1.provisionUi.DisplayAndPromptSecret': cancelOnCallback,
               'keybase.1.provisionUi.PromptNewDeviceName': (_, response) => {
                 cancelOnCallback(undefined, response)
-                C.useProvisionState.getState().dispatch.dynamic.setUsername?.(username)
+                useProvisionState.getState().dispatch.dynamic.setUsername?.(username)
               },
               'keybase.1.provisionUi.chooseDevice': cancelOnCallback,
               'keybase.1.provisionUi.chooseGPGMethod': cancelOnCallback,
@@ -737,7 +743,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
       C.ignorePromise(f())
     },
     onEngineConnected: () => {
-      C.useDaemonState.getState().dispatch.startHandshake()
+      useDaemonState.getState().dispatch.startHandshake()
 
       // The startReachability RPC call both starts and returns the current
       // reachability state. Then we'll get updates of changes from this state via reachabilityChanged.
@@ -771,7 +777,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
         await logger.dump()
       }
       C.ignorePromise(f())
-      C.useDaemonState.getState().dispatch.setError(new Error('Disconnected'))
+      useDaemonState.getState().dispatch.setError(new Error('Disconnected'))
     },
     onEngineIncoming: action => {
       switch (action.type) {
@@ -813,17 +819,17 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
         }
         case EngineGen.keybase1NotifyTrackingTrackingChanged: {
           const {isTracking, username} = action.payload.params
-          C.useFollowerState.getState().dispatch.updateFollowing(username, isTracking)
+          useFollowerState.getState().dispatch.updateFollowing(username, isTracking)
           break
         }
         case EngineGen.keybase1NotifyTrackingTrackingInfo: {
           const {uid, followers: _newFollowers, followees: _newFollowing} = action.payload.params
-          if (C.useCurrentUserState.getState().uid !== uid) {
+          if (useCurrentUserState.getState().uid !== uid) {
             return
           }
           const newFollowers = new Set(_newFollowers)
           const newFollowing = new Set(_newFollowing)
-          const {following: oldFollowing, followers: oldFollowers, dispatch} = C.useFollowerState.getState()
+          const {following: oldFollowing, followers: oldFollowers, dispatch} = useFollowerState.getState()
           const following = isEqual(newFollowing, oldFollowing) ? oldFollowing : newFollowing
           const followers = isEqual(newFollowers, oldFollowers) ? oldFollowers : newFollowers
           dispatch.replace(followers, following)
@@ -914,7 +920,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
       }))
     },
     revoke: name => {
-      const wasCurrentDevice = C.useCurrentUserState.getState().deviceName === name
+      const wasCurrentDevice = useCurrentUserState.getState().deviceName === name
       if (wasCurrentDevice) {
         const {configuredAccounts, defaultUsername} = get()
         const acc = configuredAccounts.find(n => n.username !== defaultUsername)
@@ -924,7 +930,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
           s.justRevokedSelf = name
           s.revokedTrigger++
         })
-        C.useDaemonState.getState().dispatch.loadDaemonAccounts()
+        useDaemonState.getState().dispatch.loadDaemonAccounts()
       }
     },
     setAccounts: a => {
@@ -1020,9 +1026,9 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
       if (!changed) return
 
       if (loggedIn) {
-        C.ignorePromise(C.useDaemonState.getState().dispatch.loadDaemonBootstrapStatus())
+        C.ignorePromise(useDaemonState.getState().dispatch.loadDaemonBootstrapStatus())
       }
-      C.useDaemonState.getState().dispatch.loadDaemonAccounts()
+      useDaemonState.getState().dispatch.loadDaemonAccounts()
 
       const {loadOnStart} = get().dispatch
       if (loggedIn) {
@@ -1045,7 +1051,7 @@ export const useConfigState_ = Z.createZustand<State>((set, get) => {
       }
 
       if (!causedByStartup) {
-        C.ignorePromise(C.useDaemonState.getState().dispatch.refreshAccounts())
+        C.ignorePromise(useDaemonState.getState().dispatch.refreshAccounts())
       }
     },
     setLoginError: error => {

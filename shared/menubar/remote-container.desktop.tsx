@@ -3,6 +3,10 @@ import * as C from '@/constants'
 import Menubar from './index.desktop'
 import type {DeserializeProps} from './remote-serializer.desktop'
 import {useAvatarState} from '@/common-adapters/avatar/store'
+import {useUsersState} from '@/constants/users'
+import {useFollowerState} from '@/constants/followers'
+import {useCurrentUserState} from '@/constants/current-user'
+import {useDaemonState} from '@/constants/daemon'
 
 const RemoteContainer = (d: DeserializeProps) => {
   const {avatarRefreshCounter, badgeMap, daemonHandshakeState, darkMode, diskSpaceStatus, endEstimate} = d
@@ -10,10 +14,10 @@ const RemoteContainer = (d: DeserializeProps) => {
   const {kbfsDaemonStatus, kbfsEnabled, loggedIn, metaMap, navBadges, outOfDate, conversationsToSend} = d
   const {showingDiskSpaceBanner, totalSyncingBytes, unreadMap, username, windowShownCountNum} = d
   useAvatarState(s => s.dispatch.replace)(avatarRefreshCounter)
-  C.useDaemonState(s => s.dispatch.setState)(daemonHandshakeState)
-  C.useFollowerState(s => s.dispatch.replace)(followers, following)
-  C.useUsersState(s => s.dispatch.replace)(infoMap)
-  const replaceUsername = C.useCurrentUserState(s => s.dispatch.replaceUsername)
+  useDaemonState(s => s.dispatch.setState)(daemonHandshakeState)
+  useFollowerState(s => s.dispatch.replace)(followers, following)
+  useUsersState(s => s.dispatch.replace)(infoMap)
+  const replaceUsername = useCurrentUserState(s => s.dispatch.replaceUsername)
   const setHTTPSrvInfo = C.useConfigState(s => s.dispatch.setHTTPSrvInfo)
   const setOutOfDate = C.useConfigState(s => s.dispatch.setOutOfDate)
   const setLoggedIn = C.useConfigState(s => s.dispatch.setLoggedIn)

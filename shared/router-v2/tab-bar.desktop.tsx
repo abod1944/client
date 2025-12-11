@@ -16,6 +16,9 @@ import {useSettingsState, settingsLogOutTab} from '@/constants/settings'
 import {useTrackerState} from '@/constants/tracker2'
 import {useFSState} from '@/constants/fs'
 import {useProfileState} from '@/constants/profile'
+import {useNotifState} from '@/constants/notifications'
+import {useCurrentUserState} from '@/constants/current-user'
+import {useProvisionState} from '@/constants/provision'
 
 const {hideWindow, ctlQuit} = KB2.functions
 
@@ -30,11 +33,11 @@ const FilesTabBadge = () => {
 }
 
 const Header = () => {
-  const username = C.useCurrentUserState(s => s.username)
+  const username = useCurrentUserState(s => s.username)
   const fullname = useTrackerState(s => s.getDetails(username).fullname ?? '')
   const showUserProfile = useProfileState(s => s.dispatch.showUserProfile)
 
-  const startProvision = C.useProvisionState(s => s.dispatch.startProvision)
+  const startProvision = useProvisionState(s => s.dispatch.startProvision)
   const stop = useSettingsState(s => s.dispatch.stop)
   const onAddAccount = React.useCallback(() => {
     startProvision()
@@ -165,7 +168,7 @@ const hotKeys = Object.keys(keysMap)
 
 const TabBar = React.memo(function TabBar(props: Props) {
   const {navigation, state} = props
-  const username = C.useCurrentUserState(s => s.username)
+  const username = useCurrentUserState(s => s.username)
   const onHotKey = React.useCallback(
     (cmd: string) => {
       navigation.navigate(keysMap[cmd] as Tabs.Tab)
@@ -211,7 +214,7 @@ type TabProps = {
 
 const TabBadge = (p: {name: Tabs.Tab}) => {
   const {name} = p
-  const badgeNumbers = C.useNotifState(s => s.navBadges)
+  const badgeNumbers = useNotifState(s => s.navBadges)
   const fsCriticalUpdate = useFSState(s => s.criticalUpdate)
   const badge = (badgeNumbers.get(name) ?? 0) + (name === Tabs.fsTab && fsCriticalUpdate ? 1 : 0)
   return badge ? <Kb.Badge className="tab-badge" badgeNumber={badge} /> : null
@@ -221,7 +224,7 @@ const Tab = React.memo(function Tab(props: TabProps) {
   const {tab, index, isSelected, onSelectTab} = props
   const isPeopleTab = index === 0
   const {label} = Tabs.desktopTabMeta[tab]
-  const current = C.useCurrentUserState(s => s.username)
+  const current = useCurrentUserState(s => s.username)
   const setUserSwitching = C.useConfigState(s => s.dispatch.setUserSwitching)
   const login = C.useConfigState(s => s.dispatch.login)
   const onQuickSwitch = React.useMemo(

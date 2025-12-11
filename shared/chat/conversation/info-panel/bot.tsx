@@ -2,7 +2,8 @@ import * as C from '@/constants'
 import * as Kb from '@/common-adapters'
 import * as React from 'react'
 import type * as T from '@/constants/types'
-import {getFeaturedSorted} from '@/constants/bots'
+import {getFeaturedSorted, useBotsState} from '@/constants/bots'
+import {useUsersState} from '@/constants/users'
 
 type AddToChannelProps = {
   conversationIDKey: T.Chat.ConversationIDKey
@@ -219,7 +220,7 @@ const BotTab = (props: Props) => {
       .sort((l, r) => l.localeCompare(r))
   }
 
-  const featuredBotsMap = C.useBotsState(s => s.featuredBotsMap)
+  const featuredBotsMap = useBotsState(s => s.featuredBotsMap)
   const featuredBots: Array<Item> = getFeaturedSorted(featuredBotsMap)
     .filter(
       k =>
@@ -227,8 +228,8 @@ const BotTab = (props: Props) => {
         !(!adhocTeam && teamMembers && C.Teams.userInTeamNotBotWithInfo(teamMembers, k.botUsername))
     )
     .map((bot, index) => ({...bot, index, type: 'featuredBot'}))
-  const infoMap = C.useUsersState(s => s.infoMap)
-  const loadedAllBots = C.useBotsState(s => s.featuredBotsLoaded)
+  const infoMap = useUsersState(s => s.infoMap)
+  const loadedAllBots = useBotsState(s => s.featuredBotsLoaded)
 
   const usernamesToFeaturedBots = (usernames: string[]): Array<ItemBot> =>
     usernames.map(
@@ -265,7 +266,7 @@ const BotTab = (props: Props) => {
       selected: 'chatInstallBot',
     }))
   }
-  const loadNextBotPage = C.useBotsState(s => s.dispatch.loadNextBotPage)
+  const loadNextBotPage = useBotsState(s => s.dispatch.loadNextBotPage)
   const onLoadMoreBots = () => loadNextBotPage()
   const loadingBots = !featuredBotsMap.size
 

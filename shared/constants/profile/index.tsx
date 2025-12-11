@@ -1,6 +1,7 @@
 import * as C from '..'
 import * as T from '../types'
 import * as Validators from '@/util/simple-validators'
+import {useDeepLinksState} from '../deeplinks'
 import * as Z from '@/util/zustand'
 import logger from '@/logger'
 import openURL from '@/util/open-url'
@@ -8,6 +9,7 @@ import {RPCError} from '@/util/errors'
 import {isMobile} from '../platform'
 import {fixCrop} from '@/util/crop'
 import {useTrackerState} from '../tracker2'
+import {useCurrentUserState} from '../current-user'
 
 type ProveGenericParams = {
   logoBlack: T.Tracker.SiteIconSet
@@ -264,7 +266,7 @@ export const useProfileState = Z.createZustand<State>((set, get) => {
 
         const loadAfter = () =>
           useTrackerState.getState().dispatch.load({
-            assertion: C.useCurrentUserState.getState().username,
+            assertion: useCurrentUserState.getState().username,
             guiID: C.generateGUIID(),
             inTracker: false,
             reason: '',
@@ -405,7 +407,7 @@ export const useProfileState = Z.createZustand<State>((set, get) => {
               s.errorCode = error.code
             })
             if (error.code === T.RPCGen.StatusCode.scgeneric && reason === 'appLink') {
-              C.useDeepLinksState
+              useDeepLinksState
                 .getState()
                 .dispatch.setLinkError(
                   "We couldn't find a valid service for proofs in this link. The link might be bad, or your Keybase app might be out of date and need to be updated."
@@ -433,7 +435,7 @@ export const useProfileState = Z.createZustand<State>((set, get) => {
     backToProfile: () => {
       C.useRouterState.getState().dispatch.clearModals()
       setTimeout(() => {
-        get().dispatch.showUserProfile(C.useCurrentUserState.getState().username)
+        get().dispatch.showUserProfile(useCurrentUserState.getState().username)
       }, 100)
     },
     checkProof: () => {
@@ -492,15 +494,15 @@ export const useProfileState = Z.createZustand<State>((set, get) => {
     editProfile: (bio, fullName, location) => {
       const f = async () => {
         await T.RPCGen.userProfileEditRpcPromise({bio, fullName, location}, C.waitingKeyTracker)
-        get().dispatch.showUserProfile(C.useCurrentUserState.getState().username)
+        get().dispatch.showUserProfile(useCurrentUserState.getState().username)
       }
       C.ignorePromise(f())
     },
     finishRevoking: () => {
-      const username = C.useCurrentUserState.getState().username
+      const username = useCurrentUserState.getState().username
       get().dispatch.showUserProfile(username)
       useTrackerState.getState().dispatch.load({
-        assertion: C.useCurrentUserState.getState().username,
+        assertion: useCurrentUserState.getState().username,
         guiID: C.generateGUIID(),
         inTracker: false,
         reason: '',
@@ -595,7 +597,7 @@ export const useProfileState = Z.createZustand<State>((set, get) => {
       })
       const f = async () => {
         await T.RPCGen.proveCheckProofRpcPromise({sigID}, C.waitingKeyProfile)
-        useTrackerState.getState().dispatch.showUser(C.useCurrentUserState.getState().username, false)
+        useTrackerState.getState().dispatch.showUser(useCurrentUserState.getState().username, false)
       }
       C.ignorePromise(f())
     },
@@ -646,7 +648,7 @@ export const useProfileState = Z.createZustand<State>((set, get) => {
     },
     submitRevokeProof: proofId => {
       const f = async () => {
-        const you = useTrackerState.getState().getDetails(C.useCurrentUserState.getState().username)
+        const you = useTrackerState.getState().getDetails(useCurrentUserState.getState().username)
         if (!you.assertions) return
         const proof = [...you.assertions.values()].find(a => a.sigID === proofId)
         if (!proof) return
